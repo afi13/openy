@@ -206,7 +206,7 @@
                 "2918172 - Media Entity upgrade -> core fails on absent column revision_uid": "https://www.drupal.org/files/issues/2918172-6-8.4.4.patch"
             },
             "drupal/blazy": {
-                "Remove core media dependencies to unblock upgrade": "https://raw.githubusercontent.com/afi13/openy/OPENY-231/patches/blazy/remove-core-media-dependencies.patch"
+                "Remove core media dependencies to unblock upgrade": "https://raw.githubusercontent.com/ymcatwincities/openy/8.x-2.x/patches/blazy/remove-core-media-dependencies.patch"
             }
         }
     },
@@ -214,7 +214,7 @@
         "php": ">=5.6",
         "cweagans/composer-patches": "^1.5.0",
         "composer/installers": "^1.0",
-        "drupal-composer/drupal-scaffold": "^2.0.0",
+        "drupal-composer/drupal-scaffold": "^2.5.0",
         "drupal/core": "~8.6.7",
         "drupal/features": "3.8",
         "drupal/confi": "1.4",
