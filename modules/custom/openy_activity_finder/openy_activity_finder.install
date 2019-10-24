@@ -34,3 +34,13 @@ function openy_activity_finder_update_8002() {
     $cim->importConfigs(['search_api.index.default']);
   }
 }
+
+/**
+ * Update Activity Finder configs.
+ */
+function openy_activity_finder_update_8003(&$sandbox) {
+  \Drupal::configFactory()
+    ->getEditable('openy_activity_finder.settings')
+    ->set('index', 'default')
+    ->save();
+}
