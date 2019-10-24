@@ -4,12 +4,10 @@ namespace Drupal\openy_activity_finder;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManager;
-use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\search_api\Entity\Index;
 use Drupal\Core\Url;
 use Drupal\Core\Datetime\DrupalDateTime;
@@ -20,6 +18,8 @@ use Drupal\search_api\SearchApiException;
  * {@inheritdoc}
  */
 class OpenyActivityFinderSolrBackend extends OpenyActivityFinderBackend {
+
+  use StringTranslationTrait;
 
   // 1 day for cache.
   const CACHE_TTL = 86400;
@@ -38,32 +38,11 @@ class OpenyActivityFinderSolrBackend extends OpenyActivityFinderBackend {
   protected $cache;
 
   /**
-   * The Database connection.
-   *
-   * @var \Drupal\Core\Database\Connection
-   */
-  protected $database;
-
-  /**
-   * The entity query factory.
-   *
-   * @var \Drupal\Core\Entity\Query\QueryFactory
-   */
-  protected $entityQuery;
-
-  /**
    * The EntityTypeManager.
    *
    * @var \Drupal\Core\Entity\EntityTypeManager
    */
-  protected $entity_type_manager;
-
-  /**
-   * The date formatter service.
-   *
-   * @var \Drupal\Core\Datetime\DateFormatterInterface
-   */
-  protected $dateFormatter;
+  protected $entityTypeManager;
 
   /**
    * Time manager needed for calculating expire for caches.
@@ -91,12 +70,8 @@ class OpenyActivityFinderSolrBackend extends OpenyActivityFinderBackend {
    *
    * @param CacheBackendInterface $cache
    *   Cache default.
-   * @param Connection $database
-   *   The Database connection.
    * @param EntityTypeManager $entity_type_manager
    *   The EntityTypeManager.
-   * @param DateFormatterInterface $date_formatter
-   *   The Date formatter.
    * @param TimeInterface $time
    *   Time service.
    * @param LoggerChannelInterface $loggerChannel
@@ -104,13 +79,10 @@ class OpenyActivityFinderSolrBackend extends OpenyActivityFinderBackend {
    * @param ModuleHandlerInterface $module_handler
    *   Module Handler.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, CacheBackendInterface $cache, Connection $database, QueryFactory $entity_query, EntityTypeManager $entity_type_manager, DateFormatterInterface $date_formatter, TimeInterface $time, LoggerChannelInterface $loggerChannel, ModuleHandlerInterface $module_handler) {
+  public function __construct(ConfigFactoryInterface $config_factory, CacheBackendInterface $cache, EntityTypeManager $entity_type_manager, TimeInterface $time, LoggerChannelInterface $loggerChannel, ModuleHandlerInterface $module_handler) {
     parent::__construct($config_factory);
     $this->cache = $cache;
-    $this->database = $database;
-    $this->entityQuery = $entity_query;
     $this->entityTypeManager = $entity_type_manager;
-    $this->dateFormatter = $date_formatter;
     $this->time = $time;
     $this->loggerChannel = $loggerChannel;
     $this->moduleHandler = $module_handler;
@@ -501,13 +473,13 @@ class OpenyActivityFinderSolrBackend extends OpenyActivityFinderBackend {
       $data = $cache->data;
     }
     else {
-      $nids = $this->entityQuery
-        ->get('node')
+      $node_storage = $this->entityTypeManager->getStorage('node');
+      $nids = $node_storage->getQuery()
         ->condition('type', 'program_subcategory')
         ->execute();
       $nids_chunked = array_chunk($nids, 20, TRUE);
       foreach ($nids_chunked as $chunked) {
-        $program_subcategories = $this->entityTypeManager->getStorage('node')->loadMultiple($chunked);
+        $program_subcategories = $node_storage->loadMultiple($chunked);
         if (!empty($program_subcategories)) {
           foreach ($program_subcategories as $program_subcategory_node) {
             if ($program_node = $program_subcategory_node->field_category_program->entity) {
@@ -540,14 +512,14 @@ class OpenyActivityFinderSolrBackend extends OpenyActivityFinderBackend {
       $data = $cache->data;
     }
     else {
-      $nids = $this->entityQuery
-        ->get('node')
+      $node_storage = $this->entityTypeManager->getStorage('node');
+      $nids = $node_storage->getQuery()
         ->condition('type', ['branch', 'camp', 'facility'], 'IN')
         ->condition('status', 1)
         ->execute();
       $nids_chunked = array_chunk($nids, 20, TRUE);
       foreach ($nids_chunked as $chunked) {
-        $locations = $this->entityTypeManager->getStorage('node')->loadMultiple($chunked);
+        $locations = $node_storage->loadMultiple($chunked);
         if (!empty($locations)) {
           foreach ($locations as $location) {
             $address = [];
@@ -766,7 +738,7 @@ class OpenyActivityFinderSolrBackend extends OpenyActivityFinderBackend {
           if (isset($ages[$i + 1]) && $ages[$i + 1] == 0) {
             $plus = ' + ';
           }
-          $ages_y[$i] = $ages[$i] . \Drupal::translation()->formatPlural($ages_y[$i], ' month', ' months' . $plus);
+          $ages_y[$i] = $ages[$i] . $this->formatPlural($ages_y[$i], ' month', ' months' . $plus);
         }
         else {
           if ($ages[$i] == 0 && $ages[$i + 1]) {
