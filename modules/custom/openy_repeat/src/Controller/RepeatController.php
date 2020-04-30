@@ -62,6 +62,8 @@ class RepeatController extends ControllerBase {
    *   Cache default.
    * @param Connection $database
    *   The Database connection.
+   * @param \Drupal\Core\Entity\Query\QueryFactory $entity_query
+   *   Query Factory service.
    * @param EntityTypeManager $entity_type_manager
    *   The EntityTypeManager.
    * @param DateFormatterInterface $date_formatter
@@ -92,6 +94,7 @@ class RepeatController extends ControllerBase {
    * {@inheritdoc}
    */
   public function ajaxScheduler(Request $request, $location, $date, $category) {
+    $category = str_replace('U+002F', '/', $category);
     $result = $this->getData($request, $location, $date, $category);
     return new JsonResponse($result);
   }
@@ -415,7 +418,7 @@ class RepeatController extends ControllerBase {
   private function getClassShortDate($weekday) {
     $day = $day = $this->getClassDay($weekday);
     $date = new \DateTime();
-    $date->setTimezone(drupal_get_user_timezone());
+    $date->setTimezone(new \DateTimeZone(drupal_get_user_timezone()));
     $date->modify("this $day");
     return $date->format('M j');
   }
@@ -434,7 +437,7 @@ class RepeatController extends ControllerBase {
   private function getClassSortTime($weekday) {
     $day = $day = $this->getClassDay($weekday);
     $date = new \DateTime();
-    $date->setTimezone(drupal_get_user_timezone());
+    $date->setTimezone(new \DateTimeZone(drupal_get_user_timezone()));
     $date->modify("this $day");
     return $date->format('U');
   }
@@ -517,6 +520,7 @@ class RepeatController extends ControllerBase {
       $query->condition('re.category', explode(',', $limit), 'IN');
     }
     $query->addTag('openy_repeat_get_data');
+
     $result = $query->execute()->fetchAll();
 
     $locations_info = $this->getLocationsInfo();
@@ -607,6 +611,7 @@ class RepeatController extends ControllerBase {
       foreach ($nids_chunked as $chunk) {
         $branches = $this->entityTypeManager->getStorage('node')->loadMultiple($chunk);
         if (!empty($branches)) {
+          /** @var Node $node */
           foreach ($branches as $node) {
             $days = $node->get('field_branch_hours')->getValue();
             $address = $node->get('field_location_address')->getValue();
@@ -635,6 +640,9 @@ class RepeatController extends ControllerBase {
           }
         }
       }
+
+      $this->moduleHandler()->alter('openy_repeat_locations_info', $data);
+
       $this->cache->set($cid, $data, CacheBackendInterface::CACHE_PERMANENT, $tags);
     }
 
@@ -656,6 +664,7 @@ class RepeatController extends ControllerBase {
       foreach ($nids_chunked as $chunk) {
         $classes = $this->entityTypeManager->getStorage('node')->loadMultiple($chunk);
         if (!empty($classes)) {
+          /** @var Node $node */
           foreach ($classes as $node) {
             $data[$node->nid->value] = [
               'nid' => $node->nid->value,
@@ -720,16 +729,16 @@ class RepeatController extends ControllerBase {
         '#content' => [
           'logo_url' => drupal_get_path('module', 'openy_repeat') . '/img/ymca_logo_black.png',
           'result' => $content['content']['content'],
-          'header' => $content['content']['header']
+          'header' => $content['content']['header'],
         ],
         '#theme' => $content['theme'],
         '#cache' => [
           'max-age' => 0
         ],
       ],
-      'title' => $this->t("Download PDF schedule"),
+      'title' => $this->t('Download PDF schedule'),
       '#cache' => [
-        'max-age' => 0
+        'max-age' => 0,
       ],
     ];
     \Drupal::service('openy_repeat_pdf_generator')->generatePDF($settings);
@@ -737,6 +746,11 @@ class RepeatController extends ControllerBase {
 
   /**
    * Returns content for a PDF.
+   *
+   * @param /Symfony/Component/HttpFoundation/Request $request
+   *   Request service.
+   *
+   * @return array
    */
   public function getPdfContent($request) {
     // Get all parameters from query.
@@ -835,35 +849,47 @@ class RepeatController extends ControllerBase {
           continue;
         }
 
-        $formatted_result['content'][$session->location][$session->name] = [
+        $formatted_result['content'][$session->location][$session->name . $session->room] = [
+          'name' => $session->name,
           'room' => $session->room,
           'dates' => $date_keys
         ];
       }
     }
+
     foreach ($result as $day => $data) {
       foreach ($data as $session) {
         $words = explode(' ' , $session->instructor);
         $short_name = $words[0] . ' ' . substr($words[1], 0 ,1);
         $short_name = !empty($words[1]) ? $short_name . '.' : $short_name;
-        $formatted_result['content'][$session->location][$session->name]['dates'][$day][] = [
+        $formatted_result['content'][$session->location][$session->name . $session->room]['dates'][$day][] = [
           'time' => $session->time_start . '-' . $session->time_end,
           'category' => $session->category,
           'instructor' => $short_name,
         ];
       }
     }
+
     return $formatted_result;
   }
 
 
   /**
-   * Group results by day.
+   * @param $result
+   *   Results array.
+   * @param $rooms
+   *   Rooms array.
+   * @param array $classnames
+   *   Classnames array
+   *
+   * @return array|bool
    */
   public function groupByDay($result, $rooms, $classnames = []) {
+
     if (empty($result)) {
       return FALSE;
     }
+
     $date_keys = $formatted_result = [];
 
     // Create weekdays array.

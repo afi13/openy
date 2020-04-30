@@ -3,8 +3,36 @@ a[href="#step2"] {
 }
 
 #membership-calc-wrapper {
-  fieldset {
-    margin: 0 0 2rem 0;
+
+  form {
+    fieldset {
+      margin: 0 0 2rem 0;
+
+      .fieldset-wrapper .form-radios {
+        .card {
+          height: 100%;
+          padding: 1.25rem;
+
+          .form-element-wrapper {
+            display: grid;
+            grid-template-columns: 1fr;
+            height: 100%;
+
+            .card-text {
+              display: none;
+            }
+          }
+        }
+      }
+    }
+
+    & > div.input-wrapper.position-relative {
+      display: inline-block;
+
+      &.edit-next, &.edit-submit {
+        float: right;
+      }
+    }
   }
 
   .description,
@@ -38,14 +66,6 @@ a[href="#step2"] {
     &:after {
       content: ":";
     }
-  }
-
-  .form-element-wrapper {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction:column;
-    position: relative;
-    width: 100%;
   }
 
   input[name="type"] {
@@ -111,6 +131,11 @@ a[href="#step2"] {
         color: $white;
         background-color: $indigo;
         padding: 9px;
+
+        a, a:hover, a:visited {
+          text-decoration: none;
+          color: white;
+        }
 
         @include media-breakpoint-up(sm) {
           width: calc(100% - 30px);

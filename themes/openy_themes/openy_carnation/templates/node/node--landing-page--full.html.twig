@@ -68,18 +68,6 @@
 #}
 
 {%
-  set header_classes = [
-    'landing-header',
-    'w-100',
-    node.field_lp_layout.value|clean_class,
-  ]
-%}
-
-{%
-  set header_content_classes = ['content']
-%}
-
-{%
   set content_classes = [
     'landing-content',
     node.field_lp_layout.value|clean_class,
@@ -108,7 +96,7 @@
 <div class="container">
 {% endif %}
 
-  {% if content.field_content is not empty %}
+  {% if content.field_content|render|trim is not empty %}
     <article{{ attributes.addClass(content_classes) }}>
 
       {% if ( node.field_lp_layout.value == "two_column" ) or ( node.field_lp_layout.value == "two_column_fixed" ) %}

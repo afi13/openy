@@ -13,11 +13,12 @@
     attach: function (context, settings) {
       var alertModals = $('.alert-modal', context);
 
-      $(window).on('load', function () {
-        if (alertModals.length) {
-          alertModals.modal('show');
-        }
-      });
+      if (alertModals.length) {
+        alertModals.on('hidden.bs.modal', function (e) {
+          $(this).remove();
+        });
+        alertModals.modal('show');
+      }
     }
   };
 })(jQuery);

@@ -13,6 +13,16 @@
   }
 }
 
+.desktop-menu {
+  .page-head__top-menu {
+    .col-md > div {
+      align-items: center;
+      display: flex;
+      justify-content: flex-end;
+    }
+  }
+}
+
 // primary nav > first level
 .page-head__main-menu .navbar > li {
   > a,
@@ -203,8 +213,11 @@
 // pages without a banner (ex. user account page)
 .without-banner {
 
-  .layout-container {
-    padding-top: 140px;
+  // @todo must be fixed with regions positions. This is a quick fix.
+  &.user-logged-in {
+    .layout-container {
+      padding-top: 140px;
+    }
   }
 
   // adjust top margins

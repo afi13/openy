@@ -58,6 +58,10 @@
       color: $white;
     }
 
+    .label-for-field-branch-hours {
+      display: none;
+    }
+
     .today-hours {
       .today {
         margin-right: 10px;
@@ -291,6 +295,10 @@
   .field-location-fax {
     display: inline;
   }
+}
+
+.label-for-field-branch-contacts-info {
+  display: none;
 }
 
 .branch__updates_queue {
@@ -851,7 +859,7 @@ html.js {
       margin: 20px 0 33px;
     }
   }
-  .branch-hours {
+  .field-branch-hours {
     margin-top: 15px;
     td:first-child {
       padding-right: 10px;

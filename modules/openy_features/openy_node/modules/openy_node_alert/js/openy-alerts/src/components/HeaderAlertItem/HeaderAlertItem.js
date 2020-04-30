@@ -28,6 +28,16 @@ class AlertItem extends Component {
       this.props.closeAlert(parseInt(this.props.alertId));
     };
 
+    let focusItem = () => {
+      this.props.focus(parseInt(this.props.index));
+      let slicks = document.getElementsByClassName("slick-list");
+      for (let slick of slicks) {
+        slick.scrollLeft = 0;
+        // Additionally reset horizontal scroll for screen readers.
+        setTimeout(() => { slick.scrollLeft = 0; }, 100);
+      }
+    };
+
     let linkStyle = {
       color: this.props.txtColor ? `#${this.props.txtColor}` : 'white',
       borderColor: this.props.txtColor ? `#${this.props.txtColor}` : 'white'
@@ -46,6 +56,9 @@ class AlertItem extends Component {
           data-nid={this.props.alertId}
           style={alertStyle}
           className={`alert${this.props.alertId}`}
+          tabindex="0"
+          data-idx={this.props.index}
+          onFocus={() => focusItem()}
         >
           <div className="container header-alert">
             <div className="row site-alert__wrapper">
@@ -77,6 +90,7 @@ class AlertItem extends Component {
                 className="site-alert__dismiss"
                 onClick={() => closeItem()}
                 aria-label="Close alert"
+                onFocus={() => focusItem()}
               >
                 <i className="fa fa-times" aria-hidden="true">
                   <span className="visually-hidden">

@@ -353,7 +353,7 @@
 
         var url = drupalSettings.path.baseUrl + 'schedules/get-event-data';
         url += this.locations.length > 0 ? '/' + encodeURIComponent(this.locations.join(',')) : '/0';
-        url += this.categories.length > 0 ? '/' + encodeURIComponent(this.categories.join(',')) : '/0';
+        url += this.categories.length > 0 ? '/' + encodeURIComponent(this.categories.join(',').replace('/', 'U+002F')) : '/0';
         url += date ? '/' + encodeURIComponent(date) : '';
 
         var query = [];
@@ -435,9 +435,19 @@
         $('.schedule-dashboard__modal--instructor')
           .on('shown.bs.modal', function () {
             $('.nav-global').addClass('hidden-xs');
+            $('body').addClass('scroll-not');
           })
           .on('hidden.bs.modal', function () {
             $('.nav-global').removeClass('hidden-xs');
+            $('body').removeClass('scroll-not');
+          });
+
+        $('.schedule-dashboard__modal--class')
+          .on('shown.bs.modal', function () {
+            $('body').addClass('scroll-not');
+          })
+          .on('hidden.bs.modal', function () {
+            $('body').removeClass('scroll-not');
           });
 
         var bySessionUrl = drupalSettings.path.baseUrl + 'schedules/get-event-data-by-session/';
@@ -590,6 +600,37 @@
         var diff = date.diff(now, 'days');
 
         return diff < (limit - 1);
+      },
+      showAddToCalendar: function (index, selector) {
+        $(selector + " .atcb-link").each(function (i) {
+          if (index == i) {
+            var link = $(this);
+            var menu = link.parent().find('ul');
+
+            if (!link.hasClass('open')) {
+              link.removeClass('open');
+              menu.removeClass('active')
+                  .css('display', 'none !important');
+              link.addClass('open');
+              menu.addClass('active')
+                  .css('display', 'block !important')
+                  .find('.atcb-item-link:eq(0)')
+                  .focus();
+            } else {
+              link.removeClass('open');
+              menu.removeClass('active')
+                  .css('display', 'none !important');
+            }
+          }
+        });
+      },
+      showEndTime: function () {
+        if (window.OpenY.field_prgf_repeat_schedule_end && window.OpenY.field_prgf_repeat_schedule_end.length) {
+          return window.OpenY.field_prgf_repeat_schedule_end[0].value || 0;
+        }
+        else {
+          return 0;
+        }
       }
     },
     updated: function () {
@@ -617,11 +658,11 @@
         var limitCategories = window.OpenY.field_prgf_repeat_schedule_categ || [];
         if (limitCategories && limitCategories.length > 0) {
           if (limitCategories.length === 1) {
-            limit.push(limitCategories[0].title);
+            limit.push(encodeURIComponent(limitCategories[0].title));
           }
           else {
             limitCategories.forEach(function (element) {
-              limit.push(element.title);
+              limit.push(encodeURIComponent(element.title));
             });
           }
         }

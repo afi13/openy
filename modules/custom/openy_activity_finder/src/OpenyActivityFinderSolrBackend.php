@@ -2,6 +2,7 @@
 
 namespace Drupal\openy_activity_finder;
 
+use DateTimeInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
@@ -188,6 +189,11 @@ class OpenyActivityFinderSolrBackend extends OpenyActivityFinderBackend {
       $query->addCondition('field_session_time_days', $days, 'IN');
     }
 
+    if (!empty($parameters['times'])) {
+      $times = explode(',', rawurldecode($parameters['times']));
+      $query->addCondition('af_parts_of_day', $times, 'IN');
+    }
+
     if (!empty($parameters['program_types'])) {
       $program_types = explode(',', rawurldecode($parameters['program_types']));
 
@@ -321,7 +327,11 @@ class OpenyActivityFinderSolrBackend extends OpenyActivityFinderBackend {
           'time' => $_from->format('g:ia') . '-' . $_to->format('g:ia'),
         ];
         $full_dates = $_from->format('M d') . '-' . $_to->format('M d');
-        $weeks = floor($_from->diff($_to)->days/7);
+        // It is necessary to calculate not the number of full weeks,
+        // but the number of sessions that takes place in the specified period.
+        // I.e. we calculate the amount of the last day of the week
+        // with the session (for example, Friday) in the period.
+        $weeks = $this->countDaysByName(end($days), $_from->getPhpDateTime(), $_to->getPhpDateTime());
       }
 
       $availability_status = 'closed';
@@ -505,6 +515,13 @@ class OpenyActivityFinderSolrBackend extends OpenyActivityFinderBackend {
       ],
       'days_of_week' => [
         'field' => 'field_session_time_days',
+        'limit' => 0,
+        'operator' => 'AND',
+        'min_count' => 0,
+        'missing' => TRUE,
+      ],
+      'af_parts_of_day' => [
+        'field' => 'af_parts_of_day',
         'limit' => 0,
         'operator' => 'AND',
         'min_count' => 0,
@@ -806,8 +823,30 @@ class OpenyActivityFinderSolrBackend extends OpenyActivityFinderBackend {
         }
       }
     }
-    $age_output = implode($ages_y, ' - ');
-    return $age_output;
+    return implode(' - ', $ages_y);
+  }
+
+  /**
+   * Helper function to calculate weekday quantity in period.
+   *
+   * @param String $dayName eg 'Mon', 'Tue' etc
+   * @param DateTimeInterface $start
+   * @param DateTimeInterface $end
+   *
+   * @return int
+   * @throws \Exception
+   */
+  public function countDaysByName($dayName, DateTimeInterface $start, DateTimeInterface $end) {
+    $count = 0;
+    $interval = new \DateInterval('P1D');
+    $period = new \DatePeriod($start, $interval, $end);
+
+    foreach($period as $day){
+      if($day->format('D') === ucfirst(substr($dayName, 0, 3))){
+        $count ++;
+      }
+    }
+    return $count;
   }
 
 }
